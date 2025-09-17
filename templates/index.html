@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador y Visualizador de Mensajes Diameter</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        .container { display: flex; gap: 20px; }
+        .textarea-container { flex: 1; }
+        textarea { width: 100%; height: 400px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        .results { margin-top: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h2 { color: #555; }
+        
+        /* Estilos para la vista de un solo mensaje */
+        .collapsible-header { cursor: pointer; font-weight: bold; padding: 5px; border: 1px solid #eee; margin-bottom: 5px; border-radius: 4px; }
+        .collapsible-content { padding: 10px; display: none !important; }
+        .collapsible-content.active { display: block !important; }
+
+        /* Estilos para comparación */
+        .diff-content { display: flex; gap: 20px; padding-top: 10px; }
+        .diff-message { flex: 1; border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; }
+        .diff-message h4 { margin-top: 0; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Comparador y Visualizador de Mensajes Diameter</h1>
+    <form method="post">
+        <div class="container">
+            <div class="textarea-container">
+                <label for="message1">Mensaje Diameter 1:</label>
+                <textarea id="message1" name="message1" placeholder="Pega el primer mensaje aquí...">{{ message1_text if message1_text is not none }}</textarea>
+            </div>
+            <div class="textarea-container">
+                <label for="message2">Mensaje Diameter 2:</label>
+                <textarea id="message2" name="message2" placeholder="Pega el segundo mensaje aquí...">{{ message2_text if message2_text is not none }}</textarea>
+            </div>
+        </div>
+        <button type="submit">Procesar Mensajes</button>
+    </form>
+
+    {% if mode == 'comparison' %}
+    <div class="results">
+        <h2>Diferencias Encontradas 🧐</h2>
+        {% if diffs|length > 0 %}
+            {% for diff_avp in diffs %}
+                <div class="collapsible-item">
+                    <div class="collapsible-header" data-target="diff-content-{{ loop.index }}">
+                        AVP: {{ diff_avp.name }}
+                    </div>
+                    <div id="diff-content-{{ loop.index }}" class="collapsible-content">
+                        <div class="diff-content">
+                            <div class="diff-message">
+                                <h4 class="collapsible-header" data-target="diff-message1-{{ loop.index }}">Mensaje 1</h4>
+                                <div id="diff-message1-{{ loop.index }}" class="collapsible-content">
+                                    <pre>{{ diff_avp.raw1 }}</pre>
+                                </div>
+                            </div>
+                            <div class="diff-message">
+                                <h4 class="collapsible-header" data-target="diff-message2-{{ loop.index }}">Mensaje 2</h4>
+                                <div id="diff-message2-{{ loop.index }}" class="collapsible-content">
+                                    <pre>{{ diff_avp.raw2 }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>✅ ¡Los mensajes son idénticos!</p>
+        {% endif %}
+    </div>
+    {% elif mode == 'single' %}
+    <div class="results">
+        <h2>Detalles del Mensaje Diameter</h2>
+        
+        <h3>Cabecera del Mensaje</h3>
+        <ul>
+            {% for key, value in parsed_data.header.items() %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>AVPs del Mensaje</h3>
+        {% if parsed_data.avps|length > 0 %}
+            {% for avp in parsed_data.avps %}
+                <div class="collapsible-item">
+                    <div class="collapsible-header" data-target="single-content-{{ loop.index }}">
+                        {{ avp.name }} ({{ avp.code }})
+                    </div>
+                    <div id="single-content-{{ loop.index }}" class="collapsible-content">
+                        <pre>{{ avp.raw }}</pre>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No se encontraron AVPs en el mensaje.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+        window.onload = function() {
+            const headers = document.querySelectorAll('.collapsible-header');
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    if (content) {
+                        content.classList.toggle('active');
+                    }
+                });
+            });
+        };
+    </script>
+</body>
+</html>
