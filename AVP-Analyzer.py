@@ -10,10 +10,13 @@ def parse_diameter_message(message_text):
     """
     avps = []
     
-    # Expresión regular para capturar cada AVP y su bloque de texto completo.
+    # 1. Eliminar los números de línea del texto del mensaje
+    message_text_clean = re.sub(r'^\s*\d+\s+-\s+', '', message_text, flags=re.MULTILINE)
+
+    # 2. Expresión regular para capturar cada AVP y su bloque de texto completo.
     avp_pattern = re.compile(r'avpCode:(.+?)\s+\((\d+)\)[\s\S]+?(?=^.*avpCode:|\Z)', re.MULTILINE)
     
-    matches = avp_pattern.finditer(message_text)
+    matches = avp_pattern.finditer(message_text_clean)
 
     for match in matches:
         avp_name = match.group(1).strip()
@@ -24,7 +27,7 @@ def parse_diameter_message(message_text):
         avps.append({
             'name': avp_name,
             'code': avp_code,
-            'value': avp_full_content, # Se usa el contenido completo como valor
+            'value': avp_full_content,
             'raw': avp_full_content
         })
     
@@ -60,23 +63,45 @@ def parse_diameter_message(message_text):
     return parsed_data
 
 def compare_avps(avps1, avps2):
-    """Compara dos listas de AVPs y devuelve una lista de AVPs con diferencias."""
+    """Compara dos listas de AVPs y devuelve una lista de AVPs con diferencias, ignorando el orden."""
     diff_avps = []
+    
     avp_map1 = {avp['name']: avp['raw'] for avp in avps1}
     avp_map2 = {avp['name']: avp['raw'] for avp in avps2}
 
     all_keys = set(avp_map1.keys()) | set(avp_map2.keys())
     
     for key in sorted(all_keys):
-        raw1 = avp_map1.get(key, 'N/A (Falta)')
-        raw2 = avp_map2.get(key, 'N/A (Falta)')
+        raw1_content = avp_map1.get(key, 'N/A (Falta)')
+        raw2_content = avp_map2.get(key, 'N/A (Falta)')
+        
+        # Separar el contenido por líneas para una comparación más granular
+        lines1 = raw1_content.splitlines()
+        lines2 = raw2_content.splitlines()
+        
+        # Crear un nuevo contenido con las líneas marcadas
+        marked_raw1 = []
+        marked_raw2 = []
 
-        if raw1 != raw2:
+        # Usar un zip_longest para comparar hasta que la línea más larga se agote
+        from itertools import zip_longest
+        has_diff = False
+        for line1, line2 in zip_longest(lines1, lines2, fillvalue=''):
+            if line1 != line2:
+                has_diff = True
+                marked_raw1.append(f"-> {line1}")
+                marked_raw2.append(f"-> {line2}")
+            else:
+                marked_raw1.append(line1)
+                marked_raw2.append(line2)
+
+        if has_diff:
             diff_avps.append({
                 'name': key,
-                'raw1': raw1,
-                'raw2': raw2
+                'raw1': '\n'.join(marked_raw1),
+                'raw2': '\n'.join(marked_raw2)
             })
+            
     return diff_avps
 
 @app.route('/', methods=['GET', 'POST'])
@@ -86,7 +111,6 @@ def index():
         message2_text = request.form.get('message2', '').strip()
 
         if message1_text and message2_text:
-            # Caso 1: Comparar dos mensajes
             parsed_data1 = parse_diameter_message(message1_text)
             parsed_data2 = parse_diameter_message(message2_text)
             
@@ -97,19 +121,16 @@ def index():
                                    message2_text=message2_text,
                                    mode='comparison')
         elif message1_text:
-            # Caso 2: Mostrar un solo mensaje (Mensaje 1)
             parsed_data = parse_diameter_message(message1_text)
             return render_template('index.html', parsed_data=parsed_data,
                                    message1_text=message1_text, 
                                    mode='single')
         elif message2_text:
-            # Caso 3: Mostrar un solo mensaje (Mensaje 2)
             parsed_data = parse_diameter_message(message2_text)
             return render_template('index.html', parsed_data=parsed_data,
                                    message2_text=message2_text, 
                                    mode='single')
         else:
-            # No hay mensajes para analizar
             return render_template('index.html')
             
     return render_template('index.html')
