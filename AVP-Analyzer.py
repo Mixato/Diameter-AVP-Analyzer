@@ -1,5 +1,6 @@
 import re
 from flask import Flask, render_template, request, jsonify
+from itertools import zip_longest
 
 app = Flask(__name__)
 
@@ -66,41 +67,50 @@ def compare_avps(avps1, avps2):
     """Compara dos listas de AVPs y devuelve una lista de AVPs con diferencias, ignorando el orden."""
     diff_avps = []
     
-    avp_map1 = {avp['name']: avp['raw'] for avp in avps1}
-    avp_map2 = {avp['name']: avp['raw'] for avp in avps2}
+    # Crear diccionarios de AVPs para un acceso más rápido por nombre
+    avp_map1 = {avp['name']: {'raw': avp['raw'], 'code': avp['code']} for avp in avps1}
+    avp_map2 = {avp['name']: {'raw': avp['raw'], 'code': avp['code']} for avp in avps2}
 
+    # Obtener todas las claves únicas de ambos diccionarios
     all_keys = set(avp_map1.keys()) | set(avp_map2.keys())
     
     for key in sorted(all_keys):
-        raw1_content = avp_map1.get(key, 'N/A (Falta)')
-        raw2_content = avp_map2.get(key, 'N/A (Falta)')
-        
-        # Separar el contenido por líneas para una comparación más granular
-        lines1 = raw1_content.splitlines()
-        lines2 = raw2_content.splitlines()
-        
-        # Crear un nuevo contenido con las líneas marcadas
-        marked_raw1 = []
-        marked_raw2 = []
+        avp1 = avp_map1.get(key)
+        avp2 = avp_map2.get(key)
 
-        # Usar un zip_longest para comparar hasta que la línea más larga se agote
-        from itertools import zip_longest
-        has_diff = False
-        for line1, line2 in zip_longest(lines1, lines2, fillvalue=''):
-            if line1 != line2:
-                has_diff = True
-                marked_raw1.append(f"-> {line1}")
-                marked_raw2.append(f"-> {line2}")
-            else:
-                marked_raw1.append(line1)
-                marked_raw2.append(line2)
+        raw1_content = avp1['raw'] if avp1 else 'N/A (Falta)'
+        raw2_content = avp2['raw'] if avp2 else 'N/A (Falta)'
 
-        if has_diff:
-            diff_avps.append({
-                'name': key,
-                'raw1': '\n'.join(marked_raw1),
-                'raw2': '\n'.join(marked_raw2)
-            })
+        # Comparar el contenido sin los números de línea
+        if raw1_content.strip() != raw2_content.strip():
+            # Obtener el código del AVP para mostrarlo
+            avp_code = avp1['code'] if avp1 else (avp2['code'] if avp2 else '')
+
+            # Separar el contenido por líneas para una comparación más granular
+            lines1 = raw1_content.splitlines()
+            lines2 = raw2_content.splitlines()
+            
+            # Crear un nuevo contenido con las líneas marcadas
+            marked_raw1 = []
+            marked_raw2 = []
+
+            # Usar un zip_longest para comparar hasta que la línea más larga se agote
+            has_diff = False
+            for line1, line2 in zip_longest(lines1, lines2, fillvalue=''):
+                if line1.strip() != line2.strip():
+                    has_diff = True
+                    marked_raw1.append(f"-> {line1}")
+                    marked_raw2.append(f"-> {line2}")
+                else:
+                    marked_raw1.append(line1)
+                    marked_raw2.append(line2)
+
+            if has_diff:
+                diff_avps.append({
+                    'name': f"{key} ({avp_code})",
+                    'raw1': '\n'.join(marked_raw1),
+                    'raw2': '\n'.join(marked_raw2)
+                })
             
     return diff_avps
 
