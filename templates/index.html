@@ -5,26 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparador y Visualizador de Mensajes Diameter</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h1 { color: #333; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a; /* Fondo oscuro */
+            color: #e0e0e0; /* Texto claro */
+        }
+        h1 { color: #fff; } /* Títulos blancos */
         .container { display: flex; gap: 20px; }
         .textarea-container { flex: 1; }
-        textarea { width: 100%; height: 400px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; }
-        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+            background-color: #2a2a2a; /* Fondo del área de texto oscuro */
+            color: #f0f0f0; /* Texto en el área de texto claro */
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
         button:hover { background-color: #0056b3; }
-        .results { margin-top: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        h2 { color: #555; }
+        .results {
+            margin-top: 20px;
+            background-color: #2a2a2a; /* Fondo de resultados oscuro */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Sombra más oscura */
+        }
+        h2 { color: #ccc; }
         
         /* Estilos para la vista de un solo mensaje */
-        .collapsible-header { cursor: pointer; font-weight: bold; padding: 5px; border: 1px solid #eee; margin-bottom: 5px; border-radius: 4px; }
-        .collapsible-content { padding: 10px; display: none !important; }
-        .collapsible-content.active { display: block !important; }
+        .collapsible-header {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 5px;
+            border: 1px solid #444; /* Borde más oscuro */
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background-color: #333; /* Fondo del encabezado oscuro */
+            color: #fff; /* Texto del encabezado blanco */
+        }
+        .collapsible-content {
+            padding: 10px;
+            display: none !important;
+        }
+        .collapsible-content.active {
+            display: block !important;
+        }
 
         /* Estilos para comparación */
         .diff-content { display: flex; gap: 20px; padding-top: 10px; }
-        .diff-message { flex: 1; border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; }
-        .diff-message h4 { margin-top: 0; }
-        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .diff-message {
+            flex: 1;
+            border: 1px solid #444; /* Borde más oscuro */
+            padding: 10px;
+            background-color: #3a3a3a; /* Fondo de mensaje de diferencia oscuro */
+        }
+        .diff-message h4 {
+            margin-top: 0;
+            color: #fff; /* Título del mensaje de diferencia blanco */
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #f0f0f0; /* Texto del preformato claro */
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -40,7 +100,10 @@
                 <textarea id="message2" name="message2" placeholder="Pega el segundo mensaje aquí...">{{ message2_text if message2_text is not none }}</textarea>
             </div>
         </div>
-        <button type="submit">Procesar Mensajes</button>
+        <div class="action-buttons">
+            <button type="submit">Procesar Mensajes</button>
+            <button type="button" onclick="cleanMessages()">Limpiar</button>
+        </div>
     </form>
 
     {% if mode == 'comparison' %}
@@ -104,6 +167,29 @@
     {% endif %}
 
     <script>
+        function cleanMessages() {
+            const message1 = document.getElementById('message1');
+            const message2 = document.getElementById('message2');
+            
+            // Expresión regular para encontrar el patrón de números de línea
+            const pattern = /^\s*\d{1,3}>/;
+
+            function processTextarea(textarea) {
+                let lines = textarea.value.split('\n');
+                let newLines = lines.map(line => {
+                    // Si la línea coincide con el patrón, elimina los 4 primeros caracteres
+                    if (pattern.test(line)) {
+                        return line.substring(4);
+                    }
+                    return line;
+                });
+                textarea.value = newLines.join('\n');
+            }
+
+            processTextarea(message1);
+            processTextarea(message2);
+        }
+
         window.onload = function() {
             const headers = document.querySelectorAll('.collapsible-header');
             headers.forEach(header => {
