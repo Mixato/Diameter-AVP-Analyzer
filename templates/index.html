@@ -194,14 +194,14 @@
             const message2 = document.getElementById('message2');
             
             // Expresión regular para encontrar el patrón de números de línea
-            const pattern = /^\s*\d{1,3}>/;
+            const pattern = /^\s*\d{1,4}>/;
 
             function processTextarea(textarea) {
                 let lines = textarea.value.split('\n');
                 let newLines = lines.map(line => {
-                    // Si la línea coincide con el patrón, elimina los 4 primeros caracteres
+                    // Si la línea coincide con el patrón, elimina los 5 primeros caracteres
                     if (pattern.test(line)) {
-                        return line.substring(4);
+                        return line.substring(line.match(pattern)[0].length);
                     }
                     return line;
                 });
