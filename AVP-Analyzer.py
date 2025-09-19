@@ -15,7 +15,8 @@ def parse_diameter_message(message_text):
     message_text_clean = re.sub(r'^\s*\d+\s+-\s+', '', message_text, flags=re.MULTILINE)
 
     # 2. Expresión regular para capturar cada AVP y su bloque de texto completo.
-    avp_pattern = re.compile(r'avpCode:(.+?)\s+\((\d+)\)[\s\S]+?(?=^.*avpCode:|\Z)', re.MULTILINE)
+    # El cambio clave: (?:SH)?: hace que la 'SH' sea opcional.
+    avp_pattern = re.compile(r'avpCode(?:SH)?:(.+?)\s+\((\d+)\)[\s\S]+?(?=^.*avpCode(?:SH)?:|\Z)', re.MULTILINE)
     
     matches = avp_pattern.finditer(message_text_clean)
 
