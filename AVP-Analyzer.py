@@ -16,7 +16,7 @@ def parse_diameter_message(message_text):
 
     # 2. Expresión regular para capturar cada AVP y su bloque de texto completo.
     # El cambio clave: (?:SH)?: hace que la 'SH' sea opcional.
-    avp_pattern = re.compile(r'avpCode(?:SH)?:(.+?)\s+\((\d+)\)[\s\S]+?(?=^.*avpCode(?:SH)?:|\Z)', re.MULTILINE)
+    avp_pattern = re.compile(r'(?:avpCode(?:SH)?|avp-code):(.+?)\s+\((\d+)\)[\s\S]+?(?=^.*(?:avpCode(?:SH)?|avp-code):|\Z)', re.MULTILINE)
     
     matches = avp_pattern.finditer(message_text_clean)
 
@@ -69,8 +69,8 @@ def compare_avps(avps1, avps2):
     diff_avps = []
     
     # Crear diccionarios de AVPs para un acceso más rápido por nombre
-    avp_map1 = {avp['name']: {'raw': avp['raw'], 'code': avp['code']} for avp in avps1}
-    avp_map2 = {avp['name']: {'raw': avp['raw'], 'code': avp['code']} for avp in avps2}
+    avp_map1 = {avp['code']: {'raw': avp['raw'], 'name': avp['name']} for avp in avps1}
+    avp_map2 = {avp['code']: {'raw': avp['raw'], 'name': avp['name']} for avp in avps2}
 
     # Obtener todas las claves únicas de ambos diccionarios
     all_keys = set(avp_map1.keys()) | set(avp_map2.keys())
@@ -85,7 +85,8 @@ def compare_avps(avps1, avps2):
         # Comparar el contenido sin los números de línea
         if raw1_content.strip() != raw2_content.strip():
             # Obtener el código del AVP para mostrarlo
-            avp_code = avp1['code'] if avp1 else (avp2['code'] if avp2 else '')
+            #avp_code = avp1['code'] if avp1 else (avp2['code'] if avp2 else '')
+            avp_name = avp1['name'] if avp1 else (avp2['name'] if avp2 else '')
 
             # Separar el contenido por líneas para una comparación más granular
             lines1 = raw1_content.splitlines()
@@ -108,7 +109,7 @@ def compare_avps(avps1, avps2):
 
             if has_diff:
                 diff_avps.append({
-                    'name': f"{key} ({avp_code})",
+                    'name': f"{avp_name} ({key})",
                     'raw1': '\n'.join(marked_raw1),
                     'raw2': '\n'.join(marked_raw2)
                 })
